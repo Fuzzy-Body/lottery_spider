@@ -236,6 +236,10 @@ def test():
     # print(get_odds('96746'))
     print(get_odds_bid('96746'))
 
+    # test excel
+    # data = load(RESULT)
+    # save_excel(data)
+
 
 if __name__ == '__main__':
     main()
