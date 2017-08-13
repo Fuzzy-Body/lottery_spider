@@ -106,6 +106,9 @@ def get_odds_bid(mid):
             'home': '--',
             'drew': '--',
             'away': '--',
+            'all_home': '--',
+            'all_drew': '--',
+            'all_away': '--',
         }
     current = data['result']['current']
     result = {
@@ -169,7 +172,7 @@ def save_excel(data):
         sheet1.write(row, 17, item['odd']['away'])
         row += 1
     today = datetime.datetime.now().strftime('%y-%m-%d-%H%M')
-    filename = u'data/博彩-%s.xls' % today
+    filename = u'data/data-%s.xls' % today
     f.save(filename)
     logger.info('save excel done')
 
@@ -177,7 +180,7 @@ def save_excel(data):
 def resume():
     last_stop = load(RESUME_DATA)
     if not (last_stop and int(time.time()) - last_stop['ts'] < INTERNAL):
-        logger.info('上一次抓取信息失效，从头开始')
+        logger.info('scawl form start')
         return {
             'match_list': get_match_list(),
             'result': [],
@@ -185,7 +188,7 @@ def resume():
         }
     match_list = load(MATCH_DATA)
     result_tmp = load(RESULT_TMP)
-    logger.info('上一次抓取到了%s' % last_stop['idx'])
+    logger.info('last scawl %s' % last_stop['idx'])
     return {
         'match_list': match_list,
         'result': result_tmp,
@@ -200,7 +203,7 @@ def main():
     idx = resume_info['idx']
     logger.info('scrawl start')
     for match in match_list[idx:]:
-        logger.info('正在抓取第%s个' % idx)
+        logger.info('scawling %s' % idx)
         match_id = match['id']
         item = {
             'id': match_id,
