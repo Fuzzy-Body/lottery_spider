@@ -45,14 +45,20 @@ def _request(url, to_replace='', **kwargs):
     logger.info('get url: %s' % url)
     response = requests.get(url, headers=HEADER)
     time.sleep(0.5)
-    if response.status_code != 200:
-        logger.error('get url %s error, code: %s' % (url, response.status_code))
-        logger.error(response.text)
-        raise
-    data = response.text.replace(to_replace, '')
-    data = data.strip('();')
-    data = json.loads(data)
-    return data
+    retry = 0
+    while retry < 3:
+        retry += 1
+        if response.status_code != 200:
+            logger.error('get url %s error, status_code: %s' % (url, response.status_code))
+            logger.error(response.text)
+            time.sleep(10)
+            continue
+
+        data = response.text.replace(to_replace, '')
+        data = data.strip('();')
+        data = json.loads(data)
+        return data
+    raise ValueError('get url %s, failed' % url)
 
 
 def get_match_list():
@@ -69,7 +75,15 @@ def get_match_info(mid):
 
 def get_asian_match(mid):
     # 获取亚盘澳门的信息
+    result = {
+        'home': '--',
+        'drew': '--',
+        'away': '--',
+    }
     data = _request(ASIAN_MATCH, to_replace='get_match_asia', mid=mid)
+    if data.get('status', {}).get('code') != 0:
+        logger.error('%snot found asian match' % mid)
+        return result
     for item in data['result']:
         if item['id'] == MACAO_ID:
             return {
@@ -78,16 +92,19 @@ def get_asian_match(mid):
                 'away': item['a'],
             }
     logger.error('%s没有找到澳门的盘口' % mid)
-    return {
-        'home': '--',
-        'drew': '--',
-        'away': '--',
-    }
+    return result
 
 
 def get_odds(mid):
     # 获取固定奖金
     data = _request(ODD, to_replace='get_sporttery_odds', mid=mid)
+    if data['status']['code'] != 0:
+        logger.error('%snot found odds match data' % mid)
+        return {
+            'home': '--',
+            'drew': '--',
+            'away': '--',
+        }
     newest = data['result']['had']['list'][-1]
     return {
         'home': newest['h'],
@@ -123,16 +140,20 @@ def get_odds_bid(mid):
 
 def get_odds_bid_data(home, drew, away):
     # 获取威廉希尔的即时奖金, 有可能会没有
+    result = {
+        'all_home': '--',
+        'all_drew': '--',
+        'all_away': '--',
+    }
     url = ODDS_BID_DATA.format(home=home, drew=drew, away=away)
     url = url % '{ts}'
-    data = _request(url, to_replace='deal_bid_current_all')
+    try:
+        data = _request(url, to_replace='deal_bid_current_all')
+    except ValueError:
+        return result
     if data['status']['code'] != 0:
         logger.error('%s没有找到威廉希尔的盘口' % mid)
-        return {
-            'all_home': '--',
-            'all_drew': '--',
-            'all_away': '--',
-        }
+        return result
     stat = data['result']['stat']
     return {
         'all_home': stat['h'],
@@ -245,4 +266,6 @@ def test():
 
 
 if __name__ == '__main__':
+    logger.info('start crawl')
+    logger.info(requests.get('http://info.sporttery.cn/football/match_list.php', headers=HEADER))
     main()
