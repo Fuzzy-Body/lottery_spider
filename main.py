@@ -98,7 +98,7 @@ def get_asian_match(mid):
 def get_odds(mid):
     # 获取固定奖金
     data = _request(ODD, to_replace='get_sporttery_odds', mid=mid)
-    if data['status']['code'] != 0:
+    if (data['status']['code'] != 0) or ('had' not in data['result']):
         logger.error('%snot found odds match data' % mid)
         return {
             'home': '--',
